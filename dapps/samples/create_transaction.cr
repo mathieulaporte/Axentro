@@ -34,21 +34,21 @@ module ::Axentro::Core::DApps::User
       [TARGET_ACTION]
     end
 
-    private def validate_transaction(transaction : Transaction)
-      raise "the token must be #{TOKEN_DEFAULT}" unless transaction.token == TOKEN_DEFAULT
-      raise "the number of senders must be 1" unless transaction.senders.size == 1
-      raise "the number of recipients must be 1" unless transaction.recipients.size == 1
-      raise "the recipient address must be #{VALID_ADDRESS}" unless transaction.recipients[0][:address] == VALID_ADDRESS
-      raise "the sending amount must be 0.0001" unless transaction.senders[0][:amount] == scale_i64("0.0001")
+    private def validated_transaction(transaction : Transaction)
+      return FailedTransaction.new(transaction, "the token must be #{TOKEN_DEFAULT}", "create_transaction") unless transaction.token == TOKEN_DEFAULT
+      return FailedTransaction.new(transaction, "the number of senders must be 1", "create_transaction") unless transaction.senders.size == 1
+      return FailedTransaction.new(transaction, "the number of recipients must be 1", "create_transaction") unless transaction.recipients.size == 1
+      return FailedTransaction.new(transaction, "the recipient address must be #{VALID_ADDRESS}", "create_transaction") unless transaction.recipients[0][:address] == VALID_ADDRESS
+      return FailedTransaction.new(transaction, "the sending amount must be 0.0001", "create_transaction") unless transaction.senders[0][:amount] == scale_i64("0.0001")
+      transaction
     end
 
     def valid_transactions?(transactions : Array(Transaction)) : ValidatedTransactions
       vt = ValidatedTransactions.empty
       transactions.each do |transaction|
-        validate_transaction(transaction)
-        vt << transaction.as_validated
+        vt << validated_transaction(transaction)
       rescue e : Exception
-        vt << FailedTransaction.new(transaction, e.message || "unknown error", "create_transaction").as_validated
+        vt << FailedTransaction.new(transaction, e.message || "unknown error", "create_transaction")
       end
       vt
     end
